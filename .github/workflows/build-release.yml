@@ -30,7 +30,29 @@ permissions:
   contents: write
 
 jobs:
+  precheck:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.precheck.outputs.should_run }}
+      current_steam_buildid: ${{ steps.precheck.outputs.current_steam_buildid }}
+      reason: ${{ steps.precheck.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Precheck
+        id: precheck
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/precheck.sh
+          scripts/precheck.sh
+
   build-and-release:
+    needs: precheck
+    if: needs.precheck.outputs.should_run == 'true'
     runs-on: ubuntu-latest
     env:
       GAME_APP_ID: ${{ vars.GAME_APP_ID || '2089300' }}
@@ -139,6 +161,20 @@ jobs:
             dist/icarus_qol.pak
             dist/icarus_qol.pak.sha256
 
+      - name: Write release metadata
+        if: steps.artifact_check.outputs.has_artifact == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          steam_buildid="${{ needs.precheck.outputs.current_steam_buildid }}"
+          if [[ -z "$steam_buildid" && -f dist/release-version.txt ]]; then
+            steam_buildid="$(tr -d '[:space:]' < dist/release-version.txt)"
+          fi
+          if [[ -z "$steam_buildid" ]]; then
+            steam_buildid="unknown"
+          fi
+          printf '{"source_sha":"%s","steam_buildid":"%s"}\n' "${GITHUB_SHA}" "$steam_buildid" > dist/release-meta.json
+
       - name: Create GitHub release
         if: steps.artifact_check.outputs.has_artifact == 'true'
         uses: softprops/action-gh-release@v2
@@ -149,3 +185,13 @@ jobs:
           files: |
             dist/icarus_qol.pak
             dist/icarus_qol.pak.sha256
+            dist/release-meta.json
+
+  skip-summary:
+    needs: precheck
+    if: needs.precheck.outputs.should_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip summary
+        run: |
+          echo "Precheck skip: ${{ needs.precheck.outputs.reason }}. No repo or game version changes detected. Skipping heavy build."
