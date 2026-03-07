@@ -23,7 +23,7 @@ on:
       pak_glob:
         description: "Glob to select source pak under server install"
         required: false
-        default: "*.pak"
+        default: "data.pak"
         type: string
 
 permissions:
@@ -36,7 +36,7 @@ jobs:
       GAME_APP_ID: ${{ vars.GAME_APP_ID || '2089300' }}
       MOD_NAME: ${{ vars.MOD_NAME || 'icarus_qol' }}
       STEAM_PLATFORM: ${{ vars.STEAM_PLATFORM || 'windows' }}
-      PAK_GLOB: ${{ github.event.inputs.pak_glob }}
+      PAK_GLOB: ${{ github.event.inputs.pak_glob || 'data.pak' }}
       MOD_VERSION: ${{ github.event.inputs.mod_version }}
       LANG: C.UTF-8
       LC_ALL: C.UTF-8

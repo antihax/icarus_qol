@@ -15,6 +15,7 @@ STEAM_PLATFORM="${STEAM_PLATFORM:-}"
 
 PAK_GLOB="${PAK_GLOB:-*.pak}"
 PAK_INPUT="${PAK_INPUT:-}"
+PAK_PREFERRED_INPUT="${PAK_PREFERRED_INPUT:-${GAME_DIR}/Icarus/Content/Data/data.pak}"
 PAK_TARGET_FILE="${PAK_TARGET_FILE:-D_ProcessorRecipes.json}"
 PAK_STRIP_PREFIX="${PAK_STRIP_PREFIX:-auto}"
 
@@ -116,6 +117,11 @@ find_input_pak() {
     fi
     echo "PAK_INPUT was provided but does not exist: ${PAK_INPUT}" >&2
     exit 1
+  fi
+
+  if [[ -n "${PAK_PREFERRED_INPUT}" && -f "${PAK_PREFERRED_INPUT}" ]]; then
+    echo "${PAK_PREFERRED_INPUT}"
+    return
   fi
 
   local candidates
