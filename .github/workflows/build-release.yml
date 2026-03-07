@@ -1,0 +1,146 @@
+name: Build Icarus Mod Pak
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag (leave empty for auto)"
+        required: false
+        type: string
+      release_name:
+        description: "Release title (leave empty for auto)"
+        required: false
+        type: string
+      mod_version:
+        description: "Pak version suffix (leave empty for timestamp)"
+        required: false
+        type: string
+      pak_glob:
+        description: "Glob to select source pak under server install"
+        required: false
+        default: "*.pak"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    env:
+      GAME_APP_ID: ${{ vars.GAME_APP_ID || '2089300' }}
+      MOD_NAME: ${{ vars.MOD_NAME || 'icarus_qol' }}
+      STEAM_PLATFORM: ${{ vars.STEAM_PLATFORM || 'windows' }}
+      PAK_GLOB: ${{ github.event.inputs.pak_glob }}
+      MOD_VERSION: ${{ github.event.inputs.mod_version }}
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore baseline pak from latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern "icarus_qol.pak" --dir dist --clobber --latest; then
+            echo "Restored baseline pak from latest release"
+          else
+            echo "No prior release pak found; first run will publish"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust toolchain (for repak)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install repak CLI
+        run: cargo install --git https://github.com/trumank/repak --locked repak_cli --force
+
+      - name: Install runtime dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl \
+            tar \
+            libc6:i386 \
+            libstdc++6:i386 \
+            libgcc-s1:i386 \
+            lib32gcc-s1 \
+            libcurl4-gnutls-dev:i386
+
+      - name: Build mod pak
+        shell: bash
+        run: |
+          chmod +x scripts/build_mod.sh
+          scripts/build_mod.sh
+
+      - name: Check build artifact presence
+        id: artifact_check
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f dist/build-updated.flag && -f dist/icarus_qol.pak && -f dist/icarus_qol.pak.sha256 ]]; then
+            echo "has_artifact=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_artifact=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: No changes summary
+        if: steps.artifact_check.outputs.has_artifact != 'true'
+        shell: bash
+        run: echo "No mod changes detected. Skipping artifact upload and release."
+
+      - name: Resolve release metadata
+        id: rel
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ github.event.inputs.release_tag }}"
+          title="${{ github.event.inputs.release_name }}"
+          if [[ -z "$tag" ]]; then
+            if [[ -f dist/release-version.txt ]]; then
+              steam_version="$(tr -d '[:space:]' < dist/release-version.txt)"
+            else
+              steam_version=""
+            fi
+            if [[ -n "$steam_version" ]]; then
+              tag="icarus-mod-v${steam_version}"
+            else
+              stamp="$(date +%Y%m%d-%H%M%S)"
+              tag="icarus-mod-${stamp}"
+            fi
+          fi
+          if [[ -z "$title" ]]; then
+            title="Icarus Mod Build ${tag}"
+          fi
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "title=${title}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifacts
+        if: steps.artifact_check.outputs.has_artifact == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: icarus-mod-pak
+          retention-days: 30
+          path: |
+            dist/icarus_qol.pak
+            dist/icarus_qol.pak.sha256
+
+      - name: Create GitHub release
+        if: steps.artifact_check.outputs.has_artifact == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rel.outputs.tag }}
+          name: ${{ steps.rel.outputs.title }}
+          generate_release_notes: true
+          files: |
+            dist/icarus_qol.pak
+            dist/icarus_qol.pak.sha256

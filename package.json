@@ -1,0 +1,13 @@
+{
+  "name": "icarus-qol",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Icarus QoL pak automation",
+  "license": "UNLICENSED",
+  "scripts": {
+    "modify": "node modifiers.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
