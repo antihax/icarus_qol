@@ -11,7 +11,7 @@ steam_payload="$(curl -fsSL "https://api.steamcmd.net/v1/info/2089300")"
 current_steam_buildid="$(printf '%s' "${steam_payload}" | grep -Eo '"public"[[:space:]]*:[[:space:]]*\{[[:space:]]*"buildid"[[:space:]]*:[[:space:]]*"[0-9]+"' | head -n1 | grep -Eo '[0-9]+' || true)"
 
 release_json="$(curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" 2>/dev/null || true)"
-meta_url="$(printf '%s' "${release_json}" | grep -o '"browser_download_url":"[^"]*release-meta.json"' | head -n1 | sed 's/.*"browser_download_url":"//; s/"$//' || true)"
+meta_url="$(printf '%s' "${release_json}" | grep -Eo '"browser_download_url"[[:space:]]*:[[:space:]]*"[^"]*release-meta.json"' | head -n1 | sed -E 's/.*"browser_download_url"[[:space:]]*:[[:space:]]*"([^"]*)"/\1/' || true)"
 
 if [[ -z "${meta_url}" ]]; then
   should_run="true"
@@ -38,8 +38,8 @@ if [[ -z "${meta_url}" ]]; then
 fi
 
 meta_json="$(curl -fsSL "${meta_url}")"
-last_source_sha="$(printf '%s' "${meta_json}" | grep -o '"source_sha":"[^"]*"' | head -n1 | sed 's/.*"source_sha":"//; s/"$//' || true)"
-last_steam_buildid="$(printf '%s' "${meta_json}" | grep -o '"steam_buildid":"[^"]*"' | head -n1 | sed 's/.*"steam_buildid":"//; s/"$//' || true)"
+last_source_sha="$(printf '%s' "${meta_json}" | grep -Eo '"source_sha"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed -E 's/.*"source_sha"[[:space:]]*:[[:space:]]*"([^"]*)"/\1/' || true)"
+last_steam_buildid="$(printf '%s' "${meta_json}" | grep -Eo '"steam_buildid"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n1 | sed -E 's/.*"steam_buildid"[[:space:]]*:[[:space:]]*"([^"]*)"/\1/' || true)"
 
 should_run=false
 reason="unchanged"
