@@ -114,6 +114,14 @@ function transformEnergy(json) {
   }
 }
 
+function transformStackSizes(json) {
+  for (const row of json.Rows || []) {
+    if (row.MaxStack > 1) {
+      row.MaxStack = 500;
+    }
+  }
+}
+
 function transformWater(json) {
   for (const row of json.Rows || []) {
     if (row.Provider && row.ResourceFlowRate) {
@@ -144,6 +152,11 @@ async function main() {
       inputPath: source(path.join('Traits', 'D_Water.json')),
       outputPath: output(path.join('Traits', 'D_Water.json')),
       transform: transformWater,
+    },
+        {
+      inputPath: source(path.join('Traits', 'D_Itemable.json')),
+      outputPath: output(path.join('Traits', 'D_Itemable.json')),
+      transform: transformStackSizes,
     },
   ];
 
