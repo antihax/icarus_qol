@@ -23,6 +23,9 @@ MOD_VERSION="${MOD_VERSION:-$(date +%Y.%m.%d-%H%M)}"
 OUTPUT_PAK="${OUTPUT_PAK:-${DIST_DIR}/${MOD_NAME}.pak}"
 RELEASE_VERSION_FILE="${RELEASE_VERSION_FILE:-${DIST_DIR}/release-version.txt}"
 BUILD_UPDATED_FILE="${BUILD_UPDATED_FILE:-${DIST_DIR}/build-updated.flag}"
+PACK_VERSION="${PACK_VERSION:-V11}"
+PACK_MOUNT_POINT="${PACK_MOUNT_POINT:-../../../Icarus/Content/data/}"
+PACK_PATH_HASH_SEED="${PACK_PATH_HASH_SEED:-115277563}"
 
 log() {
   printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"
@@ -189,14 +192,14 @@ run_modifiers() {
   (
     cd "${ROOT_DIR}"
     SOURCE_DATA_ROOT="${source_data_root}" \
-    OUTPUT_DATA_ROOT="${MOD_STAGING_DIR}/Mods/${MOD_NAME}/data" \
+    OUTPUT_DATA_ROOT="${MOD_STAGING_DIR}" \
     node modifiers.js
   )
 }
 
 has_mod_changes() {
   local source_data_root="$1"
-  local output_data_root="${MOD_STAGING_DIR}/Mods/${MOD_NAME}/data"
+  local output_data_root="${MOD_STAGING_DIR}"
   local found_any=0
 
   while IFS= read -r generated_file; do
@@ -226,7 +229,12 @@ pack_mod() {
   local temp_output_pak="${OUTPUT_PAK}.tmp"
 
   log "Packing mod pak"
-  repak pack "${MOD_STAGING_DIR}" "${temp_output_pak}"
+  repak pack \
+    --version "${PACK_VERSION}" \
+    --mount-point "${PACK_MOUNT_POINT}" \
+    --path-hash-seed "${PACK_PATH_HASH_SEED}" \
+    "${MOD_STAGING_DIR}" \
+    "${temp_output_pak}"
 
   if [[ -f "${OUTPUT_PAK}" ]] && cmp -s "${OUTPUT_PAK}" "${temp_output_pak}"; then
     rm -f "${temp_output_pak}" "${BUILD_UPDATED_FILE}"

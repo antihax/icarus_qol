@@ -1,6 +1,11 @@
 name: Build Icarus Mod Pak
 
 on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       release_tag:
