@@ -2,28 +2,75 @@ const fs = require('fs/promises');
 const path = require('path');
 
 const SOURCE_DATA_ROOT = process.env.SOURCE_DATA_ROOT || 'data';
-const OUTPUT_DATA_ROOT = process.env.OUTPUT_DATA_ROOT ||
-  path.join('Mods', 'icarus_qol', 'data');
+const OUTPUT_DATA_ROOT =
+    process.env.OUTPUT_DATA_ROOT || path.join('Mods', 'icarus_qol', 'data');
 
 const OUTPUT_BONUS_ROWS = new Set([
   'Carbon_Fiber',
+  'Epoxy',
+  'Epoxy_2',
   'Composite_Paste',
+  'Composite_Paste_Plat',
   'Organic_Resin',
   'Electronics',
   'Steel_Ingot',
   'Titanium_Ingot',
   'Titanium_Plate',
-  'Platinum_Ingot', 
+  'Platinum_Ingot',
   'Cobalt_Ingot',
   'Gold_Wire',
   'Copper_Wire',
   'Aluminum',
   'Glass',
-  "Concrete_Mix",
-  "Carbon_Paste",
-  "Concrete_Frame",
-  "Limestone_Frame",
-  "Iron_Frame",
+  'Concrete_Mix',
+  'Carbon_Paste',
+  'Steel_Rebar',
+  'Composites'
+]);
+
+const OUTPUT_BONUS_BY_REQUIREMENT_ROWS = new Set([
+  'Stone_Basic',
+  'Concrete_Basic',
+  'Scoria_Basic',
+  'Scoria_Brick_Basic',
+  'Limestone_Basic',
+  'Glass_Basic',
+  'Reinforced_Glass_Basic',
+  'Clay_Brick_Basic',
+  'Stone_Brick_Basic',
+  'Wood_Basic',
+  'Thatch_Basic',
+  'Interior_Wood_Basic',
+  'Iron_Basic',
+  'Ice_Basic',
+  'Stone_Advanced',
+  'Concrete_Advanced',
+  'Scoria_Advanced',
+  'Scoria_Brick_Advanced',
+  'Limestone_Advanced',
+  'Glass_Advanced',
+  'Reinforced_Glass_Advanced',
+  'Clay_Brick_Advanced',
+  'Stone_Brick_Advanced',
+  'Wood_Advanced',
+  'Thatch_Advanced',
+  'Interior_Wood_Advanced',
+  'Iron_Advanced',
+  'Ice_Advanced',
+  'Stone_Diagonal',
+  'Concrete_Diagonal',
+  'Scoria_Diagonal',
+  'Scoria_Brick_Diagonal',
+  'Limestone_Diagonal',
+  'Glass_Diagonal',
+  'Reinforced_Glass_Diagonal',
+  'Clay_Brick_Diagonal',
+  'Stone_Brick_Diagonal',
+  'Wood_Diagonal',
+  'Thatch_Diagonal',
+  'Interior_Wood_Diagonal',
+  'Iron_Diagonal',
+  'Ice_Diagonal',
 ]);
 
 const LIQUID_TYPES = new Set([
@@ -77,13 +124,18 @@ function transformProcessorRecipes(json) {
       if (OUTPUT_BONUS_ROWS.has(row.Name)) {
         output.Count *= 2;
       }
+      if (OUTPUT_BONUS_BY_REQUIREMENT_ROWS.has(row?.Requirement?.RowName)) {
+        output.Count *= 2;
+      }
     }
 
     for (const input of row.ResourceInputs || []) {
       if (input.RequiredUnits > 1) {
         const scaledUnits = Math.ceil(input.RequiredUnits / 3);
-        const isRoundedLiquid = input.Type && LIQUID_TYPES.has(input.Type.Value);
-        input.RequiredUnits = isRoundedLiquid ? roundToNearestHundred(scaledUnits) : scaledUnits;
+        const isRoundedLiquid =
+            input.Type && LIQUID_TYPES.has(input.Type.Value);
+        input.RequiredUnits =
+            isRoundedLiquid ? roundToNearestHundred(scaledUnits) : scaledUnits;
       }
     }
 
@@ -155,7 +207,7 @@ async function main() {
       outputPath: output(path.join('Traits', 'D_Water.json')),
       transform: transformWater,
     },
-        {
+    {
       inputPath: source(path.join('Traits', 'D_Itemable.json')),
       outputPath: output(path.join('Traits', 'D_Itemable.json')),
       transform: transformStackSizes,
