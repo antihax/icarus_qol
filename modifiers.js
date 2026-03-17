@@ -187,6 +187,18 @@ function transformWater(json) {
   }
 }
 
+function transformDecayable(json) {
+  for (const row of json.Rows || []) {
+    if (
+      typeof row.Name === 'string' &&
+      row.Name.startsWith('Decay_Food') &&
+      typeof row.SpoilTime === 'number'
+    ) {
+      row.SpoilTime *= 10;
+    }
+  }
+}
+
 async function main() {
   const source = (relativePath) => path.join(SOURCE_DATA_ROOT, relativePath);
   const output = (relativePath) => path.join(OUTPUT_DATA_ROOT, relativePath);
@@ -211,6 +223,11 @@ async function main() {
       inputPath: source(path.join('Traits', 'D_Itemable.json')),
       outputPath: output(path.join('Traits', 'D_Itemable.json')),
       transform: transformStackSizes,
+    },
+    {
+      inputPath: source(path.join('Traits', 'D_Decayable.json')),
+      outputPath: output(path.join('Traits', 'D_Decayable.json')),
+      transform: transformDecayable,
     },
   ];
 
