@@ -189,13 +189,12 @@ function transformWater(json) {
 
 function transformDecayable(json) {
   for (const row of json.Rows || []) {
-    if (
-      typeof row.Name === 'string' &&
-      row.Name.startsWith('Decay_Food') &&
+    if (typeof row.Name === 'string' &&
+        (row.Name.startsWith('Decay_Food') || row.Name === 'Decay_Frozen_Food') &&
       typeof row.SpoilTime === 'number'
     ) {
-      row.SpoilTime *= 10;
-    }
+        row.SpoilTime *= 10;
+      }
   }
 }
 
